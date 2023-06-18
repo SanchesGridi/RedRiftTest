@@ -65,6 +65,7 @@
 
 @code {
     private bool collapseNewReply;
+    private Random? random;
     private ReplySettings? settings;
     private List<string>? validationErrors;
     private ILogger<TextEditor>? logger;
@@ -75,6 +76,7 @@
     protected override async Task OnInitializedAsync()
     {
         collapseNewReply = true;
+        random = new();
         settings = new();
         validationErrors = new();
         logger = factory.CreateLogger<TextEditor>();
@@ -107,7 +109,8 @@
             }
             if (validationErrors.Count == 0)
             {
-                var existingHero = context.Heroes.FirstOrDefault(x => x.Name == settings!.HeroName);
+                var heroes = await context.Heroes.ToListAsync();
+                var existingHero = heroes.FirstOrDefault(x => x.Name == settings!.HeroName);
                 var lastReply = (await context.GetOrderedRepliesAsync()).LastOrDefault();
                 var getOrder = () => lastReply == null ? 1 : lastReply.Order + 1;
                 if (existingHero != null)
@@ -122,6 +125,12 @@
                 }
                 else
                 {
+                    var existingColors = heroes.Select(x => x.Color);
+                    var color = GenerateHeroColor();
+                    while (existingColors.Contains(color))
+                    {
+                        color = GenerateHeroColor();
+                    }
                     var hero = new HeroEntity
                     {
                         Name = settings!.HeroName,
@@ -146,5 +155,5 @@
         }
     }
 
-    private string GenerateHeroColor() => "red"; // todo: Generate real html
+    private string GenerateHeroColor() => $"#{random?.Next(0x1000000):X6}";
 }
