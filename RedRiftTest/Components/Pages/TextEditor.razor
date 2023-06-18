@@ -85,7 +85,7 @@
 
     private void ToggleNewReply()
     {
-        // hide others??? (collapseField1 = collapseField2 = collapseFieldN = false)
+        // todo: hide others (collapseField1 = collapseField2 = collapseFieldN = false)
         collapseNewReply = !collapseNewReply;
     }
 
@@ -124,8 +124,8 @@
                 {
                     var hero = new HeroEntity
                     {
-                        Name = settings!.HeroName, // todo: check unique exception (add code for this situation)
-                        Color = GenerateHeroColor() // todo: check unique exception
+                        Name = settings!.HeroName,
+                        Color = GenerateHeroColor()
                     };
                     var reply = new ReplyEntity
                     {
