@@ -1,6 +1,150 @@
 ﻿@page "/"
 @page "/index"
+@inject ILoggerFactory factory
+@inject NovelsContext context
 
 <PageTitle>Text Editor</PageTitle>
 
-<h1>Content</h1>
+<div class="sidebar bg-dark text-white">
+    <div class="card-header text-center">
+        <span>Actions:</span>
+    </div>
+    <div class="btn-toolbar btn-group-vertical" role="toolbar">
+        <button class="btn btn-secondary btn-for-toolbar" @onclick="@(() => collapseNewReply = !collapseNewReply)">New reply</button>
+        <button class="btn btn-secondary btn-for-toolbar">Remove</button>
+        <button class="btn btn-secondary btn-for-toolbar">Update hero</button>
+        <button class="btn btn-secondary btn-for-toolbar">Update reply</button>
+        <button class="btn btn-secondary btn-for-toolbar">Update order</button>
+    </div>
+</div>
+
+<div class="text-editor-content">
+    <div class="@newReplyClass">
+        <div class="card-header">
+            <strong>New reply settings:</strong>
+        </div>
+        <div class="card-body">
+            <EditForm Model="@settings" OnSubmit="AddNewReplyAsync">
+                <div class="form-group mt-2">
+                    <label for="hero_name">Hero:</label>
+                    <InputText id="hero_name" class="form-control" placeholder="Enter hero name" @bind-Value="settings!.HeroName"></InputText>
+                </div>
+                <div class="form-group mt-2">
+                    <label for="hero_reply">Reply:</label>
+                    <InputTextArea id="hero_reply" class="form-control" placeholder="Enter hero reply" @bind-Value="settings!.HeroReply"></InputTextArea>
+                </div>
+                <button type="submit" class="btn btn-primary mt-2">Add new reply</button>
+                <ul class="validation-errors mt-2">
+                    @foreach (var error in validationErrors!)
+                    {
+                        <li class="validation-message">@error</li>
+                    }
+                </ul>
+            </EditForm>
+        </div>
+    </div>
+    <div class="card mt-1">
+        <div class="card-header">
+            <strong>Replies:</strong>
+        </div>
+        <div class="card-body">
+            @if (replies?.Count() > 0)
+            {
+                @foreach (var reply in replies)
+                {
+                    <p class="mt-2"><strong style="color:@reply.Hero!.Color">@reply.Order) @reply.Hero!.Name: </strong>@reply.Text</p>
+                }
+            }
+            else
+            {
+                <strong class="mt-2">replies store empty</strong>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool collapseNewReply;
+    private ReplySettings? settings;
+    private List<string>? validationErrors;
+    private ILogger<TextEditor>? logger;
+    private IEnumerable<ReplyEntity>? replies;
+
+    private string newReplyClass => collapseNewReply ? "card collapse" : "card";
+
+    protected override async Task OnInitializedAsync()
+    {
+        collapseNewReply = true;
+        settings = new();
+        validationErrors = new();
+        logger = factory.CreateLogger<TextEditor>();
+        replies = await context.GetOrderedRepliesAsync();
+
+        await base.OnInitializedAsync();
+    }
+
+    private void ToggleNewReply()
+    {
+        // hide others??? (collapseField1 = collapseField2 = collapseFieldN = false)
+        collapseNewReply = !collapseNewReply;
+    }
+
+    private async Task AddNewReplyAsync()
+    {
+        try
+        {
+            if (validationErrors!.Count > 0)
+            {
+                validationErrors.Clear();
+            }
+            if (settings!.HeroName!.IsEmpty())
+            {
+                validationErrors.Add("Hero name should be filled!");
+            }
+            if (settings!.HeroReply!.IsEmpty())
+            {
+                validationErrors.Add("Hero reply should be filled!");
+            }
+            if (validationErrors.Count == 0)
+            {
+                var existingHero = context.Heroes.FirstOrDefault(x => x.Name == settings!.HeroName);
+                var lastReply = (await context.GetOrderedRepliesAsync()).LastOrDefault();
+                var getOrder = () => lastReply == null ? 1 : lastReply.Order + 1;
+                if (existingHero != null)
+                {
+                    var reply = new ReplyEntity
+                    {
+                        Text = settings!.HeroReply,
+                        Hero = existingHero,
+                        Order = getOrder.Invoke()
+                    };
+                    await context.Replies.AddAsync(reply).ConfigureAwait(false);
+                }
+                else
+                {
+                    var hero = new HeroEntity
+                    {
+                        Name = settings!.HeroName, // todo: check unique exception (add code for this situation)
+                        Color = GenerateHeroColor() // todo: check unique exception
+                    };
+                    var reply = new ReplyEntity
+                    {
+                        Text = settings!.HeroReply,
+                        Hero = hero,
+                        Order = getOrder.Invoke()
+                    };
+                    await context.Heroes.AddAsync(hero).ConfigureAwait(false);
+                    await context.Replies.AddAsync(reply).ConfigureAwait(false);
+                }
+                await context.SaveChangesAsync().ConfigureAwait(false);
+                replies = await context.GetOrderedRepliesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger!.LogError(ex, ex.Message);
+        }
+    }
+
+    private string GenerateHeroColor() => "red"; // todo: Generate real html
+}
