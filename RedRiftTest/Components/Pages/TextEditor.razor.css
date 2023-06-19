@@ -2,3 +2,13 @@
 .table-hover > tbody > tr:hover > th {
     background-color: darkgray;
 }
+
+.hero-circle {
+    width: 180px;
+    min-width: 180px;
+    display: inline-block;
+    padding: 5px;
+    text-align: center;
+    line-height: 17.5px;
+    color: #ffffff;
+}

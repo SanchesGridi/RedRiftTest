@@ -126,7 +126,13 @@
             {
                 foreach (var reply in replies)
                 {
-                    <p class="mt-2"><strong style="color:@reply.Hero!.Color">@reply.Order) @reply.Hero!.Name: </strong>@reply.Text</p>
+                    var color = reply?.Hero?.Color;
+                    var order = reply?.Order;
+                    var name = reply?.Hero?.Name;
+                    var text = reply?.Text;
+                    var badgeClass = "badge border rounded-pill hero-circle btn";
+                    var id = reply!.Hero!.Id;
+                    <p class="mt-2"><strong style="color:@color">@order) </strong><span style="background:@color" class="@badgeClass" @onclick="@(() => ChangeNameAsync(id))">@name:</span> @text</p>
                 }
             }
             else
@@ -163,6 +169,18 @@
         var replyEntities = await context.GetOrderedRepliesAsync();
         heroes = heroEntities.MapToModels(mapper);
         replies = replyEntities.MapToModels(mapper);
+    }
+
+    private async Task ChangeNameAsync(Guid id)
+    {
+        try
+        {
+            await Task.CompletedTask; // todo: logic
+        }
+        catch (Exception ex)
+        {
+            logger!.LogError(ex, ex.Message);
+        }
     }
 
     private async Task RemoveHeroAsync(Guid id)
