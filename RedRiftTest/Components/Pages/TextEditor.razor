@@ -242,16 +242,15 @@
             }
             if (validationErrors.Count == 0)
             {
-                var existingHero = heroes?.FirstOrDefault(x => x.Name == settings!.HeroName);
                 var lastReply = replies?.LastOrDefault();
-                var getOrder = () => lastReply == null ? 1 : lastReply.Order + 1;
+                var existingHero = heroes?.FirstOrDefault(x => x.Name == settings!.HeroName);
                 if (existingHero != null)
                 {
                     var reply = new ReplyEntity
                     {
                         Text = settings!.HeroReply,
                         Hero = await context.Heroes.FirstOrDefaultAsync(x => x.Id == existingHero.Id),
-                        Order = getOrder.Invoke()
+                        Order = GetOrder(lastReply)
                     };
                     await context.Replies.AddAsync(reply).ConfigureAwait(false);
                 }
@@ -272,7 +271,7 @@
                     {
                         Text = settings!.HeroReply,
                         Hero = hero,
-                        Order = getOrder.Invoke()
+                        Order = GetOrder(lastReply)
                     };
                     await context.Heroes.AddAsync(hero).ConfigureAwait(false);
                     await context.Replies.AddAsync(reply).ConfigureAwait(false);
@@ -288,4 +287,6 @@
     }
 
     private string GenerateHeroColor() => $"#{random?.Next(0x1000000):X6}";
+
+    private uint GetOrder(Reply? lastReply) => lastReply == null ? 1 : lastReply.Order + 1;
 }
