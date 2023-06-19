@@ -1,5 +1,6 @@
 ﻿@page "/"
 @page "/index"
+@inject IMapper mapper
 @inject ILoggerFactory factory
 @inject NovelsContext context
 
@@ -59,8 +60,8 @@
                             <tr>
                                 <td class="w-25">@hero.Name</td>
                                 <td class="w-25">@hero.Color</td>
-                                <td class="w-25">@hero.Replies.Count</td>
-                                <td class="w-25"><button class="btn btn-primary" @onclick="@(async () => await RemoveHeroAsync(hero.Id))">remove</button></td>
+                                <td class="w-25">@hero?.Replies?.Count</td>
+                                <td class="w-25"><button class="btn btn-primary" @onclick="@(async () => await RemoveHeroAsync(hero!.Id))">remove</button></td>
                             </tr>
                         }
                     </tbody>
@@ -142,8 +143,8 @@
     private ReplySettings? settings;
     private List<string>? validationErrors;
     private ILogger<TextEditor>? logger;
-    private IEnumerable<HeroEntity>? heroes; // todo: mapper models
-    private IEnumerable<ReplyEntity>? replies; // todo: mapper models
+    private IEnumerable<Hero>? heroes;
+    private IEnumerable<Reply>? replies;
 
     protected override async Task OnInitializedAsync()
     {
@@ -158,19 +159,21 @@
 
     private async Task UpdateUiAsync()
     {
-        heroes = await context.GetHeroesAsync();
-        replies = await context.GetOrderedRepliesAsync();
+        var heroEntities = await context.GetHeroesAsync();
+        var replyEntities = await context.GetOrderedRepliesAsync();
+        heroes = heroEntities.MapToModels(mapper);
+        replies = replyEntities.MapToModels(mapper);
     }
 
     private async Task RemoveHeroAsync(Guid id)
     {
         try
         {
-            var repliesToRemove = replies?.Where(x => x.HeroId == id);
+            var repliesToRemove = context.Replies.Where(x => x.HeroId == id);
             if (repliesToRemove != null)
             {
                 context.Replies.RemoveRange(repliesToRemove);
-                var heroToRemove = heroes?.FirstOrDefault(x => x.Id == id);
+                var heroToRemove = await context.Heroes.FirstOrDefaultAsync(x => x.Id == id);
                 if (heroToRemove != null)
                 {
                     context.Heroes.Remove(heroToRemove);
@@ -189,7 +192,7 @@
     {
         try
         {
-            var replyToRemove = replies?.FirstOrDefault(x => x.Id == id);
+            var replyToRemove = await context.Replies.FirstOrDefaultAsync(x => x.Id == id);
             if (replyToRemove != null)
             {
                 context.Replies.Remove(replyToRemove);
@@ -229,7 +232,7 @@
                     var reply = new ReplyEntity
                     {
                         Text = settings!.HeroReply,
-                        Hero = existingHero,
+                        Hero = await context.Heroes.FirstOrDefaultAsync(x => x.Id == existingHero.Id),
                         Order = getOrder.Invoke()
                     };
                     await context.Replies.AddAsync(reply).ConfigureAwait(false);

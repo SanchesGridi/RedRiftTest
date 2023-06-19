@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RedRiftTest.Database.Contexts;
+using RedRiftTest.Mapper.Profiles;
 
 namespace RedRiftTest.Extensions;
 
@@ -14,6 +15,11 @@ public static class WebApplicationBuilderExtensions
         services.AddDbContext<NovelsContext>(
             opt => opt.UseSqlServer(connectionString).UseLazyLoadingProxies()
         );
+        services.AddAutoMapper(x =>
+        {
+            x.AddProfile<HeroProfile>();
+            x.AddProfile<ReplyProfile>();
+        });
         services.AddRazorPages();
         services.AddServerSideBlazor();
 
