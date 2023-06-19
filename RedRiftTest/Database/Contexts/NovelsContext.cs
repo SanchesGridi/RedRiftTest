@@ -13,6 +13,11 @@ public class NovelsContext : DbContext
         Database.EnsureCreated(); // todo: migrations ??? 
     }
 
+    public async Task<IEnumerable<HeroEntity>> GetHeroesAsync()
+    {
+        return await Heroes.ToListAsync().ConfigureAwait(false);
+    }
+
     public async Task<IEnumerable<ReplyEntity>> GetOrderedRepliesAsync()
     {
         return await Replies.OrderBy(x => x.Order).ToListAsync().ConfigureAwait(false);
