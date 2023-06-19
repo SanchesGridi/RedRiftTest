@@ -5,117 +5,103 @@
 
 <PageTitle>Text Editor</PageTitle>
 
-<div class="sidebar bg-dark text-white">
-    <div class="card-header text-center">
-        <span>Actions:</span>
+<div class="card">
+    <div class="card-header">
+        <strong>New reply section:</strong>
     </div>
-    <div class="btn-toolbar btn-group-vertical" role="toolbar">
-        <button class="btn btn-secondary btn-for-toolbar" @onclick="ToggleNewReplySection">New reply</button>
-        <button class="btn btn-secondary btn-for-toolbar" @onclick="ToggleOptionsSection">Options</button>
+    <div class="card-body">
+        <EditForm Model="@settings" OnSubmit="AddNewReplyAsync">
+            <div class="form-group mt-2">
+                <label for="hero_name">Hero:</label>
+                <InputText id="hero_name" class="form-control" placeholder="Enter hero name" @bind-Value="settings!.HeroName"></InputText>
+            </div>
+            <div class="form-group mt-2">
+                <label for="hero_reply">Reply:</label>
+                <InputTextArea id="hero_reply" class="form-control" placeholder="Enter hero reply" @bind-Value="settings!.HeroReply"></InputTextArea>
+            </div>
+            <button type="submit" class="btn btn-primary mt-2">Add new reply</button>
+            <ul class="validation-errors mt-2">
+                @foreach (var error in validationErrors!)
+                {
+                    <li class="validation-message">@error</li>
+                }
+            </ul>
+        </EditForm>
     </div>
 </div>
 
-<div class="text-editor-content">
-
-    <div class="@NewReplySectionClass">
-        <div class="card-header">
-            <strong>New reply section:</strong>
-        </div>
-        <div class="card-body">
-            <EditForm Model="@settings" OnSubmit="AddNewReplyAsync">
-                <div class="form-group mt-2">
-                    <label for="hero_name">Hero:</label>
-                    <InputText id="hero_name" class="form-control" placeholder="Enter hero name" @bind-Value="settings!.HeroName"></InputText>
-                </div>
-                <div class="form-group mt-2">
-                    <label for="hero_reply">Reply:</label>
-                    <InputTextArea id="hero_reply" class="form-control" placeholder="Enter hero reply" @bind-Value="settings!.HeroReply"></InputTextArea>
-                </div>
-                <button type="submit" class="btn btn-primary mt-2">Add new reply</button>
-                <ul class="validation-errors mt-2">
-                    @foreach (var error in validationErrors!)
-                    {
-                        <li class="validation-message">@error</li>
-                    }
-                </ul>
-            </EditForm>
-        </div>
+<div class="card mt-2">
+    <div class="card-header">
+        <strong>Options section:</strong>
     </div>
-
-    <div class="@OptionsSectionClass">
-        <div class="card-header">
-            <strong>Options section:</strong>
-        </div>
-        <div class="card-body">
-            <p><em>Heroes:</em></p>
-            @if (heroes == null)
+    <div class="card-body">
+        <p><em>Heroes:</em></p>
+        @if (heroes == null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else
+        {
+            if (heroes?.Count() > 0)
             {
-                <p><em>Loading...</em></p>
-            }
-            else
-            {
-                if (heroes?.Count() > 0)
-                {
-                    <table class="table table-bordered table-striped table-hover">
-                        <thead>
+                <table class="table table-bordered table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name:</th>
+                            <th>Color:</th>
+                            <th>Replies count:</th>
+                            <th>Actions:</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var hero in heroes)
+                        {
                             <tr>
-                                <th>Name:</th>
-                                <th>Color:</th>
-                                <th>Replies count:</th>
-                                <th>Actions:</th>
+                                <td>@hero.Name</td>
+                                <td>@hero.Color</td>
+                                <td>@hero.Replies.Count</td>
+                                <td><button class="btn btn-primary" @onclick="@(async () => await RemoveHeroAsync(hero.Id))">remove</button></td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var hero in heroes)
-                            {
-                                <tr>
-                                    <td>@hero.Name</td>
-                                    <td>@hero.Color</td>
-                                    <td>@hero.Replies.Count</td>
-                                    <td><button class="btn btn-primary" @onclick="@(async () => await RemoveHeroAsync(hero.Id))">remove</button></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
-                else
-                {
-                    <strong class="mt-2">heroes is empty</strong>
-                }
-            }
-        </div>
-    </div>
-
-    <div class="card mt-1">
-        <div class="card-header">
-            <strong>Replies:</strong>
-        </div>
-        <div class="card-body">
-            @if (replies == null)
-            {
-                <p><em>Loading...</em></p>
+                        }
+                    </tbody>
+                </table>
             }
             else
             {
-                if (replies.Count() > 0)
-                {
-                    foreach (var reply in replies)
-                    {
-                        <p class="mt-2"><strong style="color:@reply.Hero!.Color">@reply.Order) @reply.Hero!.Name: </strong>@reply.Text</p>
-                    }
-                }
-                else
-                {
-                    <strong class="mt-2">replies is empty</strong>
-                }
+                <strong class="mt-2">heroes is empty</strong>
             }
-        </div>
+        }
     </div>
 </div>
+
+<div class="card mt-2">
+    <div class="card-header">
+        <strong>Replies:</strong>
+    </div>
+    <div class="card-body">
+        @if (replies == null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else
+        {
+            if (replies.Count() > 0)
+            {
+                foreach (var reply in replies)
+                {
+                    <p class="mt-2"><strong style="color:@reply.Hero!.Color">@reply.Order) @reply.Hero!.Name: </strong>@reply.Text</p>
+                }
+            }
+            else
+            {
+                <strong class="mt-2">replies is empty</strong>
+            }
+        }
+    </div>
+</div>
+
 
 @code {
-    private bool collapseNewReplySection;
-    private bool collapseOptionsSection;
     private Random? random;
     private ReplySettings? settings;
     private List<string>? validationErrors;
@@ -123,13 +109,8 @@
     private IEnumerable<HeroEntity>? heroes; // todo: mapper models
     private IEnumerable<ReplyEntity>? replies; // todo: mapper models
 
-    private string NewReplySectionClass => collapseNewReplySection ? "card collapse" : "card";
-    private string OptionsSectionClass => collapseOptionsSection ? "card mt-1 collapse" : "card mt-1";
-
     protected override async Task OnInitializedAsync()
     {
-        collapseNewReplySection = true;
-        collapseOptionsSection = true;
         random = new();
         settings = new();
         validationErrors = new();
@@ -137,18 +118,6 @@
 
         await UpdateUiAsync();
         await base.OnInitializedAsync();
-    }
-
-    private void ToggleNewReplySection()
-    {
-        collapseOptionsSection = true;
-        collapseNewReplySection = !collapseNewReplySection;
-    }
-
-    private void ToggleOptionsSection()
-    {
-        collapseNewReplySection = true;
-        collapseOptionsSection = !collapseOptionsSection;
     }
 
     private async Task UpdateUiAsync()

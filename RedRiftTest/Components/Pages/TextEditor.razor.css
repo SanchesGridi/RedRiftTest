@@ -1,16 +1,4 @@
-﻿.sidebar {
-    width: 20%;
-    height: 100vh;
-    position: sticky;
-    float: left;
-}
-.btn-for-toolbar {
-    margin: 5px 0px 5px 2.5px;
-    width: 97%;
-}
-.text-editor-content {
-    width: 77.5%;
-    height: 100vh;
-    position: sticky;
-    float: right;
+﻿.table-hover > tbody > tr:hover > td,
+.table-hover > tbody > tr:hover > th {
+    background-color: darkgray;
 }
