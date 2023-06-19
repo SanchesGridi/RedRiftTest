@@ -10,7 +10,7 @@ public class NovelsContext : DbContext
 
     public NovelsContext(DbContextOptions<NovelsContext> options) : base(options)
     {
-        Database.EnsureCreated(); // todo: migrations ??? 
+        Database.EnsureCreated(); // todo: migrations ???
     }
 
     public async Task<IEnumerable<HeroEntity>> GetHeroesAsync()

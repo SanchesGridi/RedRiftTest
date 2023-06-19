@@ -42,7 +42,7 @@
         }
         else
         {
-            if (heroes?.Count() > 0)
+            if (heroes.Count() > 0)
             {
                 <table class="table table-bordered table-striped table-hover">
                     <thead>
@@ -69,6 +69,42 @@
             else
             {
                 <strong class="mt-2">heroes is empty</strong>
+            }
+        }
+        <p><em>Replies:</em></p>
+        @if (replies == null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else
+        {
+            if (replies.Count() > 0)
+            {
+                <table class="table table-bordered table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Text</th>
+                            <th>Hero</th>
+                            <th>Actions:</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var reply in replies)
+                        {
+                            <tr>
+                                <td>@reply.Order</td>
+                                <td>@reply.Text</td>
+                                <td>@reply.Hero?.Name</td>
+                                <td><button class="btn btn-primary" @onclick="@(async () => await RemoveReplyAsync(reply.Id))">remove</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <strong class="mt-2">replies is empty</strong>
             }
         }
     </div>
@@ -140,7 +176,24 @@
                     context.Heroes.Remove(heroToRemove);
                 }
                 await context.SaveChangesAsync().ConfigureAwait(false);
+                await UpdateUiAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger!.LogError(ex, ex.Message);
+        }
+    }
 
+    private async Task RemoveReplyAsync(Guid id)
+    {
+        try
+        {
+            var replyToRemove = replies?.FirstOrDefault(x => x.Id == id);
+            if (replyToRemove != null)
+            {
+                context.Replies.Remove(replyToRemove);
+                await context.SaveChangesAsync().ConfigureAwait(false);
                 await UpdateUiAsync();
             }
         }
