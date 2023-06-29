@@ -1,0 +1,147 @@
+﻿@page "/administrative-page"
+@inject IMapper mapper
+@inject ILoggerFactory factory
+@inject NovelsContext context
+
+<div class="card">
+    <div class="card-header">
+        <strong>Options section:</strong>
+    </div>
+    <div class="card-body">
+        <p><em>Heroes:</em></p>
+        @if (heroes == null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else
+        {
+            if (heroes.Count() > 0)
+            {
+                <table class="table table-bordered table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th class="w-25">Name:</th>
+                            <th class="w-25">Color:</th>
+                            <th class="w-25">Replies count:</th>
+                            <th class="w-25">Actions:</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var hero in heroes)
+                        {
+                            <tr>
+                                <td class="w-25">@hero.Name</td>
+                                <td class="w-25">@hero.Color</td>
+                                <td class="w-25">@hero?.Replies?.Count</td>
+                                <td class="w-25"><button class="btn btn-primary" @onclick="@(async () => await RemoveHeroAsync(hero!.Id))">remove</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <strong class="mt-2">heroes is empty</strong>
+            }
+        }
+        <p><em>Replies:</em></p>
+        @if (replies == null)
+        {
+            <p><em>Loading...</em></p>
+        }
+        else
+        {
+            if (replies.Count() > 0)
+            {
+                <table class="table table-bordered table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th class="w-25">Order</th>
+                            <th class="w-25">Text</th>
+                            <th class="w-25">Hero</th>
+                            <th class="w-25">Actions:</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var reply in replies)
+                        {
+                            <tr>
+                                <td class="w-25">@reply.Order</td>
+                                <td class="w-25">@reply.Text</td>
+                                <td class="w-25">@reply.Hero?.Name</td>
+                                <td class="w-25"><button class="btn btn-primary" @onclick="@(async () => await RemoveReplyAsync(reply.Id))">remove</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <strong class="mt-2">replies is empty</strong>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private ILogger<TextEditor>? logger;
+    private IEnumerable<Hero>? heroes;
+    private IEnumerable<Reply>? replies;
+
+    protected override async Task OnInitializedAsync()
+    {
+        logger = factory.CreateLogger<TextEditor>();
+
+        await UpdateUiAsync();
+        await base.OnInitializedAsync();
+    }
+
+    private async Task UpdateUiAsync()
+    {
+        var heroEntities = await context.GetHeroesAsync();
+        var replyEntities = await context.GetOrderedRepliesAsync();
+        heroes = heroEntities.MapToModels(mapper);
+        replies = replyEntities.MapToModels(mapper);
+    }
+
+    private async Task RemoveHeroAsync(Guid id)
+    {
+        try
+        {
+            var repliesToRemove = context.Replies.Where(x => x.HeroId == id);
+            if (repliesToRemove != null)
+            {
+                context.Replies.RemoveRange(repliesToRemove);
+                var heroToRemove = await context.Heroes.FirstOrDefaultAsync(x => x.Id == id);
+                if (heroToRemove != null)
+                {
+                    context.Heroes.Remove(heroToRemove);
+                }
+                await context.SaveChangesAsync().ConfigureAwait(false);
+                await UpdateUiAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger!.LogError(ex, ex.Message);
+        }
+    }
+
+    private async Task RemoveReplyAsync(Guid id)
+    {
+        try
+        {
+            var replyToRemove = await context.Replies.FirstOrDefaultAsync(x => x.Id == id);
+            if (replyToRemove != null)
+            {
+                context.Replies.Remove(replyToRemove);
+                await context.SaveChangesAsync().ConfigureAwait(false);
+                await UpdateUiAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger!.LogError(ex, ex.Message);
+        }
+    }
+}

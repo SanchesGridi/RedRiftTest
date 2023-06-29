@@ -1,7 +1,9 @@
 ﻿@page "/"
 @page "/index"
+@implements IAsyncDisposable
 @inject IMapper mapper
 @inject ILoggerFactory factory
+@inject IJSRuntime js
 @inject NovelsContext context
 
 <PageTitle>Text Editor</PageTitle>
@@ -33,86 +35,6 @@
 
 <div class="card mt-2">
     <div class="card-header">
-        <strong>Options section:</strong>
-    </div>
-    <div class="card-body">
-        <p><em>Heroes:</em></p>
-        @if (heroes == null)
-        {
-            <p><em>Loading...</em></p>
-        }
-        else
-        {
-            if (heroes.Count() > 0)
-            {
-                <table class="table table-bordered table-striped table-hover">
-                    <thead>
-                        <tr>
-                            <th class="w-25">Name:</th>
-                            <th class="w-25">Color:</th>
-                            <th class="w-25">Replies count:</th>
-                            <th class="w-25">Actions:</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var hero in heroes)
-                        {
-                            <tr>
-                                <td class="w-25">@hero.Name</td>
-                                <td class="w-25">@hero.Color</td>
-                                <td class="w-25">@hero?.Replies?.Count</td>
-                                <td class="w-25"><button class="btn btn-primary" @onclick="@(async () => await RemoveHeroAsync(hero!.Id))">remove</button></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
-            else
-            {
-                <strong class="mt-2">heroes is empty</strong>
-            }
-        }
-        <p><em>Replies:</em></p>
-        @if (replies == null)
-        {
-            <p><em>Loading...</em></p>
-        }
-        else
-        {
-            if (replies.Count() > 0)
-            {
-                <table class="table table-bordered table-striped table-hover">
-                    <thead>
-                        <tr>
-                            <th class="w-25">Order</th>
-                            <th class="w-25">Text</th>
-                            <th class="w-25">Hero</th>
-                            <th class="w-25">Actions:</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var reply in replies)
-                        {
-                            <tr>
-                                <td class="w-25">@reply.Order</td>
-                                <td class="w-25">@reply.Text</td>
-                                <td class="w-25">@reply.Hero?.Name</td>
-                                <td class="w-25"><button class="btn btn-primary" @onclick="@(async () => await RemoveReplyAsync(reply.Id))">remove</button></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
-            else
-            {
-                <strong class="mt-2">replies is empty</strong>
-            }
-        }
-    </div>
-</div>
-
-<div class="card mt-2">
-    <div class="card-header">
         <strong>Replies:</strong>
     </div>
     <div class="card-body">
@@ -132,8 +54,20 @@
                     var text = reply?.Text;
                     var badgeClass = "badge border rounded-pill hero-circle btn";
                     var id = reply!.Hero!.Id;
-                    <p class="mt-2"><strong style="color:@color">@order) </strong><span style="background:@color" class="@badgeClass" @onclick="@(() => ChangeNameAsync(id))">@name:</span> @text</p>
+                    <p class="mt-2"><strong style="color:@color">@order) </strong><span style="background:@color" class="@badgeClass" @onclick="@(async () => await OpenDialogAsync(id))">@name:</span> @text</p>
                 }
+                <dialog id="@DialogId" class="text-editor-dialog">
+                    <div class="card" style="width: 300px; height: 150px;">
+                        <div class="card-header">
+                            <strong>Hero: @currentHero?.Name</strong>
+                        </div>
+                        <div class="card-body">
+                            <InputText class="form-control" placeholder="@currentHero?.Name" @bind-Value="name"></InputText>
+                            <button class="btn btn-primary mt-2" @onclick="ChangeHeroNameAsync">save</button>
+                            <button class="btn btn-primary mt-2" @onclick="CloseDialogAsync">close</button>
+                        </div>
+                    </div>
+                </dialog>
             }
             else
             {
@@ -143,14 +77,27 @@
     </div>
 </div>
 
-
 @code {
+    private const string DialogId = "reply-dialog";
+
+    private string? name;
+    private Hero? currentHero;
     private Random? random;
     private ReplySettings? settings;
     private List<string>? validationErrors;
     private ILogger<TextEditor>? logger;
     private IEnumerable<Hero>? heroes;
     private IEnumerable<Reply>? replies;
+    private IJSObjectReference? module;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await js.InvokeAsync<IJSObjectReference>("import", "./js/text-editor.js");
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -171,33 +118,14 @@
         replies = replyEntities.MapToModels(mapper);
     }
 
-    private async Task ChangeNameAsync(Guid id)
+    private async Task OpenDialogAsync(Guid id)
     {
         try
         {
-            await Task.CompletedTask; // todo: logic
-        }
-        catch (Exception ex)
-        {
-            logger!.LogError(ex, ex.Message);
-        }
-    }
-
-    private async Task RemoveHeroAsync(Guid id)
-    {
-        try
-        {
-            var repliesToRemove = context.Replies.Where(x => x.HeroId == id);
-            if (repliesToRemove != null)
+            if (module != null)
             {
-                context.Replies.RemoveRange(repliesToRemove);
-                var heroToRemove = await context.Heroes.FirstOrDefaultAsync(x => x.Id == id);
-                if (heroToRemove != null)
-                {
-                    context.Heroes.Remove(heroToRemove);
-                }
-                await context.SaveChangesAsync().ConfigureAwait(false);
-                await UpdateUiAsync();
+                currentHero = heroes?.FirstOrDefault(x => x.Id == id);
+                await module.InvokeVoidAsync("openDialog", DialogId);
             }
         }
         catch (Exception ex)
@@ -206,16 +134,33 @@
         }
     }
 
-    private async Task RemoveReplyAsync(Guid id)
+    private async Task CloseDialogAsync()
     {
         try
         {
-            var replyToRemove = await context.Replies.FirstOrDefaultAsync(x => x.Id == id);
-            if (replyToRemove != null)
+            if (module != null)
             {
-                context.Replies.Remove(replyToRemove);
+                await module.InvokeVoidAsync("closeDialog", DialogId);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger!.LogError(ex, ex.Message);
+        }
+    }
+
+    private async Task ChangeHeroNameAsync()
+    {
+        try
+        {
+            var hero = await context.Heroes.FirstOrDefaultAsync(x => x.Id == currentHero!.Id);
+            if (hero != null)
+            {
+                hero.Name = name;
+                context.Heroes.Update(hero);
                 await context.SaveChangesAsync().ConfigureAwait(false);
                 await UpdateUiAsync();
+                await CloseDialogAsync();
             }
         }
         catch (Exception ex)
@@ -289,4 +234,12 @@
     private string GenerateHeroColor() => $"#{random?.Next(0x1000000):X6}";
 
     private uint GetOrder(Reply? lastReply) => lastReply == null ? 1 : lastReply.Order + 1;
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module != null)
+        {   
+            await module.DisposeAsync();
+        }
+    }
 }

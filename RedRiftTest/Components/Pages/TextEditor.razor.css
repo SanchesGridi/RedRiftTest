@@ -1,9 +1,4 @@
-﻿.table-hover > tbody > tr:hover > td,
-.table-hover > tbody > tr:hover > th {
-    background-color: darkgray;
-}
-
-.hero-circle {
+﻿.hero-circle {
     width: 180px;
     min-width: 180px;
     display: inline-block;
@@ -11,4 +6,13 @@
     text-align: center;
     line-height: 17.5px;
     color: #ffffff;
+}
+
+.text-editor-dialog {
+    border: 0;
+    box-shadow: 0 0 1em rgb(0 0 0 / .3);
+}
+
+.text-editor-dialog::backdrop {
+    background: rgb(0 0 0 / .4);
 }
